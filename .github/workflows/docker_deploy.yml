@@ -36,7 +36,7 @@ jobs:
       run: doctl registry login --expiry-seconds 600
 
     - name: Push image to DigitalOcean Container Registry
-      run: docker push registry.digitalocean.com/houfu/fairesy-server-backend
+      run: docker push registry.digitalocean.com/houfu/fairest-server-backend
       
   build_frontend:
     runs-on: ubuntu-latest
@@ -59,4 +59,4 @@ jobs:
       run: doctl registry login --expiry-seconds 600
 
     - name: Push image to DigitalOcean Container Registry
-      run: docker push registry.digitalocean.com/houfu/fairesy-server-frontend
+      run: docker push registry.digitalocean.com/houfu/fairest-server-frontend
