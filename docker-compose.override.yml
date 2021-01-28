@@ -1,0 +1,71 @@
+version: "3.7"
+services:
+
+  proxy:
+    image: library/traefik:v2.3
+    ports:
+      - "80:80"
+      - "8090:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      # Enable Docker in Traefik, so that it reads labels from Docker services
+      - --providers.docker
+      # Add a constraint to only use services with the label for this stack
+      # from the env var TRAEFIK_TAG
+      - --providers.docker.constraints=Label(`traefik.constraint-label-stack`, `fairest`)
+      # Do not expose all Docker services, only the ones explicitly exposed
+      - --providers.docker.exposedbydefault=false
+      # Disable Docker Swarm mode for local development
+      # - --providers.docker.swarmmode
+      # Enable the access log, with HTTP requests
+      - --accesslog
+      # Enable the Traefik log, for configurations and errors
+      - --log
+      # Enable the Dashboard and API
+      - --api
+      # Enable the Dashboard and API in insecure mode for local development
+      - --api.insecure=true
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.fairest-traefik-public-http.rule=Host(`localhost`)
+      - traefik.http.services.fairest-traefik-public.loadbalancer.server.port=80
+
+  backend:
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./backend:/app/
+    environment:
+      - JUPYTER=jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.custom_display_url=http://127.0.0.1:8888
+      - SERVER_HOST=http://localhost
+      - PROJECT_NAME='fairest'
+    build:
+      context: ./backend
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-true}
+        INSTALL_JUPYTER: ${INSTALL_JUPYTER-true}
+    # command: bash -c "while true; do sleep 1; done"  # Infinite loop to keep container live doing nothing
+    command: /start-reload.sh
+    labels:
+      - traefik.enable=true
+      - traefik.constraint-label-stack=fairest
+      - traefik.http.routers.fairest-backend-http.rule=PathPrefix(`/api`) || PathPrefix(`/docs`) || PathPrefix(`/redoc`)
+      - traefik.http.services.fairest-backend.loadbalancer.server.port=80
+
+  frontend:
+    ports:
+      - "3000:3000"
+    build:
+      context: ./frontend
+      args:
+        FRONTEND_ENV: dev
+    command: ["yarn", "dev"]
+    volumes:
+      - './frontend:/usr/src/app'
+      - './frontend/node_modules:/usr/src/app/node_modules'
+    labels:
+      - traefik.enable=true
+      - traefik.constraint-label-stack=fairest
+      - traefik.http.routers.fairest-frontend-http.rule=PathPrefix(`/`)
+      - traefik.http.services.fairest-frontend.loadbalancer.server.port=3000
