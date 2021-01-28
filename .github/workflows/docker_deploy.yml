@@ -24,9 +24,6 @@ jobs:
     - name: Checkout master
       uses: actions/checkout@master
 
-    - name: Update SHA
-      run: echo $GITHUB_SHA > $GITHUB_WORKSPACE/site/_meta
-
     - name: Build container image
       run: docker build -t registry.digitalocean.com/houfu/fairest-server-backend:$(echo $GITHUB_SHA | head -c7) .
 
@@ -49,9 +46,6 @@ jobs:
     steps:
     - name: Checkout master
       uses: actions/checkout@master
-
-    - name: Update SHA
-      run: echo $GITHUB_SHA > $GITHUB_WORKSPACE/site/_meta
 
     - name: Build container image
       run: docker build -t registry.digitalocean.com/houfu/fairest-server-frontend:$(echo $GITHUB_SHA | head -c7) .
