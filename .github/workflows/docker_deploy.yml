@@ -1,0 +1,68 @@
+# This is a basic workflow to help you get started with Actions
+
+name: deploy_to_doctl
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build_backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+    - name: Checkout master
+      uses: actions/checkout@master
+
+    - name: Update SHA
+      run: echo $GITHUB_SHA > $GITHUB_WORKSPACE/site/_meta
+
+    - name: Build container image
+      run: docker build -t registry.digitalocean.com/houfu/fairest-server-backend:$(echo $GITHUB_SHA | head -c7) .
+
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    - name: Log in to DigitalOcean Container Registry with short-lived credentials
+      run: doctl registry login --expiry-seconds 600
+
+    - name: Push image to DigitalOcean Container Registry
+      run: docker push registry.digitalocean.com/houfu/fairesy-server-backend
+      
+  build_frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+    - name: Checkout master
+      uses: actions/checkout@master
+
+    - name: Update SHA
+      run: echo $GITHUB_SHA > $GITHUB_WORKSPACE/site/_meta
+
+    - name: Build container image
+      run: docker build -t registry.digitalocean.com/houfu/fairest-server-frontend:$(echo $GITHUB_SHA | head -c7) .
+
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    - name: Log in to DigitalOcean Container Registry with short-lived credentials
+      run: doctl registry login --expiry-seconds 600
+
+    - name: Push image to DigitalOcean Container Registry
+      run: docker push registry.digitalocean.com/houfu/fairesy-server-frontend
